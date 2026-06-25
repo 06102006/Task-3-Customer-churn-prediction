@@ -1,0 +1,70 @@
+!pip install kagglehub -q
+
+import kagglehub
+import pandas as pd
+import os
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+# Download dataset
+path = kagglehub.dataset_download(
+    "shantanudhakadd/bank-customer-churn-prediction"
+)
+
+# Find CSV file automatically
+csv_file = [f for f in os.listdir(path) if f.endswith('.csv')][0]
+
+# Load Dataset
+df = pd.read_csv(os.path.join(path, csv_file))
+
+print("Dataset Shape:", df.shape)
+print(df.head())
+
+# Drop unnecessary columns
+drop_cols = ['RowNumber', 'CustomerId', 'Surname']
+df = df.drop(columns=[c for c in drop_cols if c in df.columns])
+
+# Encode Gender
+if 'Gender' in df.columns:
+    le = LabelEncoder()
+    df['Gender'] = le.fit_transform(df['Gender'])
+
+# One-hot encoding Geography
+if 'Geography' in df.columns:
+    df = pd.get_dummies(df, columns=['Geography'], drop_first=True)
+
+# Features and Target
+X = df.drop('Exited', axis=1)
+y = df['Exited']
+
+# Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.2,
+    random_state=42,
+    stratify=y
+)
+
+# Model
+model = RandomForestClassifier(
+    n_estimators=200,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+
+# Prediction
+y_pred = model.predict(X_test)
+
+# Results
+print("\nAccuracy Score:")
+print(accuracy_score(y_test, y_pred))
+
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
